@@ -1,63 +1,62 @@
-#!/opt/homebrew/bin/bash
+#!/bin/bash
 
-crate_char_index=(1 5 9 13 17 21 25 29 33)
-
-stacks=()
-function put_in_stack() {
-  stacks[i]="${stacks[i]}${crate}"
-}
+CRATE_CHAR_INDEX=(1 5 9 13 17 21 25 29 33)
+IFS=''
 
 function move_crates() {
-  from_stack="${stacks[from]}"
-  to_move=$(echo "${from_stack:0:$qty}")
+  local command="$1"
+
+  local qty=$(cut -d " " -f 2 <<< "$command")
+  local from=$(( $(cut -d " " -f 4 <<< "$command") - 1 ))
+  local to=$(( $(cut -d " " -f 6 <<< "$command") - 1 ))
+
+  local from_stack="${stacks[from]}"
+  local crates_to_move="${from_stack:0:$qty}"
+  local crates_remaining="${from_stack:$qty}"
 
   if [ "$CRANE_MODEL" == "9000" ]; then
-    to_move=$(rev <<< $to_move)
+    crates_to_move=$(rev <<< "$crates_to_move")
   fi
 
-  stacks[from]=${from_stack:$qty}
-  to_stack="${stacks[to]}"
-  stacks[to]="${to_move}${to_stack}"
+  stacks[from]=${crates_remaining}
+  stacks[to]="${crates_to_move}${stacks[to]}"
 }
 
-function get_top_crates() {
-  for crates in ${stacks[@]}; do
-    echo ${crates:0:1}
+function load_stacks() {
+  local command="$1"
+
+  for stack_number in "${!CRATE_CHAR_INDEX[@]}"; do
+    local char_index="${CRATE_CHAR_INDEX[$stack_number]}"
+    local crate="${command:char_index:1}"
+    if [[ "$crate" != " " ]]; then
+      stacks[stack_number]+="${crate}"
+    fi
   done
 }
 
-
-IFS=''
+function get_top_crates() {
+  for crates in "${stacks[@]}"; do
+    echo "${crates:0:1}"
+  done
+}
 
 function solve() {
+  stacks=()
   while read -r line; do
-    if [[ $line =~ "[" ]]; then
-      for i in "${!crate_char_index[@]}"; do
-        char_count="${crate_char_index[$i]}"
-        crate="${line:char_count:1}"
-        if [[ "$crate" != " " ]]; then
-          put_in_stack
-        fi
-      done
-    fi
-
-
-    if [[ $line =~ "move" ]]; then
-      qty=$(cut -d " " -f 2 <<< "$line")
-      from=$(( $(cut -d " " -f 4 <<< "$line") - 1 ))
-      to=$(( $(cut -d " " -f 6 <<< "$line") - 1 ))
-      move_crates
+    if [[ "$line" =~ "[" ]]; then
+      load_stacks "$line"
+    elif [[ $line =~ "move" ]]; then
+      move_crates "$line"
     fi
   done < input.txt
+  get_top_crates
 }
 
 echo "part 1" #TDCHVHJTG
 CRANE_MODEL=9000
 solve
-get_top_crates
 
-echo "part 2" #TDCHVHJTG
+echo "part 2" #NGCMPJLHV
 CRANE_MODEL=9001
 solve
-get_top_crates
 
