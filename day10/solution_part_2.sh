@@ -2,8 +2,12 @@
 
 cpu_cycle=0
 sprite_centre=1
+screen=()
 
-signal_strengths=0
+function should_draw() {
+  [[ "$crt" -ge "$(( sprite_centre - 1 ))" ]] && \
+  [[ "$crt" -le "$(( sprite_centre + 1 ))" ]];
+}
 
 function increment_cpu_cycle() {
   cycles="$1"
@@ -11,10 +15,11 @@ function increment_cpu_cycle() {
   for (( i= 0; i<"$cycles"; i++ )); do
     (( cpu_cycle += 1 ))
 
-    if (( ( cpu_cycle - 20 )  % 40 == 0 )); then
-      echo "cycle = ${cpu_cycle}: $(( cpu_cycle * x ))"
-      (( signal_strengths += ( cpu_cycle * sprite_centre ) ))
-    fi
+    row=$(( ( cpu_cycle - 1 ) / 40 ))
+    crt=$(( ( cpu_cycle - 1 ) % 40 ))
+
+    should_draw && char="#" || char=" "
+    screen["$row"]+="$char"
   done
 }
 
@@ -42,5 +47,8 @@ while read -r line; do
    esac
 done < input.txt
 
-echo "Part 1: ${signal_strengths}" # 13520
+for row in "${screen[@]}"; do
+  echo "$row"
+done
+
 
